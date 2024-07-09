@@ -1,6 +1,5 @@
 # Quickbase Explorer
-
-TODO
+This is a Visual Studio Code plugin that allows you to browse the database tables and view the table's properties and rules all from within vscode.
 
 ## Features
 
