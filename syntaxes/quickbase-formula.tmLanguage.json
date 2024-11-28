@@ -1,0 +1,74 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Quickbase Formula",
+    "patterns": [
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#functions"
+        },
+        {
+            "include": "#numbers"
+        },
+        {
+            "include": "#operators"
+        }
+    ],
+    "repository": {
+        "keywords": {
+            "patterns": [{
+                "name": "keyword.control.quickbase-formula",
+                "match": "\\b(if|then|else|and|or|not)\\b"
+            }]
+        },
+        "strings": {
+            "patterns": [
+                {
+                    "name": "string.quoted.double.quickbase-formula",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.quickbase-formula",
+                            "match": "\\\\."
+                        }
+                    ]
+                },
+                {
+                    "name": "string.quoted.single.quickbase-formula",
+                    "begin": "'",
+                    "end": "'",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.quickbase-formula",
+                            "match": "\\\\."
+                        }
+                    ]
+                }
+            ]
+        },
+        "functions": {
+            "patterns": [{
+                "name": "support.function.quickbase-formula",
+                "match": "\\b(ToText|Average|Count|Max|Min|Sum|Date|Now|Today|ToDate|Length|Substring|Upper|Lower)\\b"
+            }]
+        },
+        "numbers": {
+            "patterns": [{
+                "name": "constant.numeric.quickbase-formula",
+                "match": "\\b[0-9]+(\\.([0-9])+)?\\b"
+            }]
+        },
+        "operators": {
+            "patterns": [{
+                "name": "keyword.operator.quickbase-formula",
+                "match": "\\+|\\-|\\*|\\/|\\=|\\<|\\>|\\&|\\.|\\,"
+            }]
+        }
+    },
+    "scopeName": "source.quickbase-formula"
+} 

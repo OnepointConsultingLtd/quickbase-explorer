@@ -58,34 +58,30 @@ export class QuickbaseTablesProvider implements vscode.TreeDataProvider<Entry> {
     }
 
     private async getTableRelationships(table: Entry): Promise<Entry[]> {
-        const url: string = "https://api.quickbase.com/v1/tables/" + table.id + "/relationships?skip=0";
-        console.log("Item: ", JSON.stringify(table));
-        console.log("Get relationship at: ", url);
-        const userToken: string = await this.secretStorage.get("quickbaseApp.conf.userToken");
-        let res: string = await fetch(url, {
-            "method": "GET",
-            "headers": {
-                "QB-Realm-Hostname": this.realm,
-                "Authorization": "QB-USER-TOKEN " + userToken,
-                "Content-Type": "application/json",
-                'Accept': 'application/json'
-            }
-        }).then(response => response.text())
-            .then(body => {
-                console.log("Fields JSON: " + body);
-                return body;
-            }
-            ).catch(err => {
-                console.log(err);
-                return "";
+        const url: string = `https://api.quickbase.com/v1/tables/${table.id}/relationships?skip=0`;
+        const userToken: string = await this.secretStorage.get("quickbaseApp.conf.userToken") ?? '';
+        try {
+            const response = await fetch(url, {
+                method: "GET",
+                headers: {
+                    "QB-Realm-Hostname": this.realm,
+                    "Authorization": `QB-USER-TOKEN ${userToken}`,
+                    "Content-Type": "application/json",
+                    'Accept': 'application/json'
+                }
             });
-        let jsonRelationships: any[] = JSON.parse(res).relationships;
-        let relationships: Entry[] = [];
-        jsonRelationships.forEach(rel => {
-            relationships.push(new Entry(rel.parentTableId + "<" + rel.childTableId, vscode.TreeItemCollapsibleState.None, "relationship", rel.id));
-            console.log(rel.label);
-        });
-        return relationships;
+
+            if (!response.ok) {
+                throw new Error(`Error fetching relationships: ${response.statusText}`);
+            }
+
+            const body = await response.json();
+            console.log("Relationships JSON: ", body);
+            return [];
+        } catch (err) {
+            console.error("Failed to fetch relationships:", err);
+            return [];
+        }
     }
 
     private async getTableFields(table: Entry): Promise<Entry[]> {
@@ -113,7 +109,8 @@ export class QuickbaseTablesProvider implements vscode.TreeDataProvider<Entry> {
         let jsonFields: any[] = JSON.parse(res);
         let fields: Entry[] = [];
         jsonFields.forEach(f => {
-            fields.push(new Entry(f.label, vscode.TreeItemCollapsibleState.Collapsed, "field", f.id, table.tableId));
+            const contextValue = f.mode === "formula" ? "formulaField" : "field";
+            fields.push(new Entry(f.label, vscode.TreeItemCollapsibleState.Collapsed, "field", f.id, table.tableId, contextValue));
             console.log(f.label);
         });
         return fields;
@@ -198,11 +195,13 @@ class Entry extends vscode.TreeItem {
         public readonly collapsibleState: vscode.TreeItemCollapsibleState,
         public readonly type: string,
         public readonly objectId?: string,
-        public readonly tableId?: string
+        public readonly tableId?: string,
+        contextValue?: string
     ) {
         super(name, collapsibleState);
         this.tooltip = `${this.label}-${this.id}`;
         this.description = this.objectId;
+        this.contextValue = contextValue || type;
         if (type !== "property") {
             this.iconPath = {
                 light: path.join(__filename, '..', '..', 'resources', 'light', this.type + '.png'),

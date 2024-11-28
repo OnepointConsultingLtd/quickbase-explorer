@@ -41,17 +41,17 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     vscode.commands.registerCommand('quickbase-explorer.configureQuickbaseApp', async () => {
-
         const configuration = vscode.workspace.getConfiguration('quickbaseApp.conf');
 
         const realm = await vscode.window.showInputBox({ prompt: 'Quickbase realm host name.' });
-        await configuration.update('realm', realm, vscode.ConfigurationTarget.Global);
+        if (realm) {
+            await configuration.update('realm', realm, vscode.ConfigurationTarget.Global);
+        }
 
         const appId = await vscode.window.showInputBox({ prompt: 'Quickbase application ID.' });
-        await configuration.update('applicationId', appId, vscode.ConfigurationTarget.Global);
-
-        // const userToken = await vscode.window.showInputBox({ prompt: 'Quickbase user token.' });
-        // await configuration.update('userToken', userToken, vscode.ConfigurationTarget.Global);
+        if (appId) {
+            await configuration.update('applicationId', appId, vscode.ConfigurationTarget.Global);
+        }
 
         const secretStorage: SecretStorage = context.secrets;
         const userToken: string = await vscode.window.showInputBox({
@@ -59,19 +59,74 @@ export function activate(context: vscode.ExtensionContext) {
             title: "User token"
         }) ?? '';
 
-        secretStorage.store("quickbaseApp.conf.userToken", userToken);
+        if (userToken) {
+            secretStorage.store("quickbaseApp.conf.userToken", userToken);
+        }
     });
 
-    // vscode.commands.registerCommand('quickbase-explorer.configureUserToken', async () => {
+    vscode.commands.registerCommand('quickbase-explorer.editField', (field: Entry) => {
+        vscode.window.showInputBox({ prompt: `Edit Field: ${field.name}`, value: field.description })
+            .then(newValue => {
+                if (newValue !== undefined) {
+                    // Implement the logic to update the field with newValue
+                    vscode.window.showInformationMessage(`Field ${field.name} updated to ${newValue}`);
+                }
+            });
+    });
 
-    //     const secretStorage: vscode.SecretStorage = context.secrets;
-    //     const userToken: string = await vscode.window.showInputBox({
-    //         password: true,
-    //         title: "User token"
-    //     }) ?? '';
-    
-    //     secretStorage.store("quickbaseApp.conf.userToken", userToken);
-    // });
+    vscode.commands.registerCommand('quickbase-explorer.editFormulaField', async (field: Entry) => {
+        if (field.type === "field" && field.contextValue === "formulaField") {
+            const userToken: string = await context.secrets.get("quickbaseApp.conf.userToken") ?? '';
+            const url = `https://api.quickbase.com/v1/fields/${field.objectId}?tableId=${field.tableId}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: "GET",
+                    headers: {
+                        "QB-Realm-Hostname": vscode.workspace.getConfiguration('quickbaseApp.conf').get("realm"),
+                        "Authorization": `QB-USER-TOKEN ${userToken}`,
+                        "Content-Type": "application/json",
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error fetching formula: ${response.statusText}`);
+                }
+
+                const fieldData = await response.json();
+                console.log("Field Data:", JSON.stringify(fieldData, null, 2));
+
+                const formulaText = fieldData.properties?.formula;
+
+                if (formulaText) {
+                    // Create a URI for the untitled document with the desired name
+                    const documentUri = vscode.Uri.parse(`untitled:${field.name} (formula).txt`);
+                    
+                    // Create and show the document
+                    const document = await vscode.workspace.openTextDocument(documentUri);
+                    const editor = await vscode.window.showTextDocument(document, { 
+                        preview: false, 
+                        viewColumn: vscode.ViewColumn.One 
+                    });
+                    
+                    // Insert the formula text and set the language
+                    await editor.edit(editBuilder => {
+                        editBuilder.insert(new vscode.Position(0, 0), formulaText);
+                    });
+                    
+                    // Set the language mode to quickbase-formula
+                    await vscode.languages.setTextDocumentLanguage(document, 'quickbase-formula');
+                } else {
+                    vscode.window.showErrorMessage("Formula text is empty or not found.");
+                }
+
+            } catch (err) {
+                vscode.window.showErrorMessage(`Failed to fetch formula: ${err.message}`);
+            }
+        }
+    });
+
     context.subscriptions.push(disposable);
 }
 

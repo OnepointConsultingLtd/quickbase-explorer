@@ -45,6 +45,18 @@
       {
         "command": "quickbase-explorer.configureQuickbaseApp",
         "title": "Configure Quickbase"
+      },
+      {
+        "command": "quickbase-explorer.fieldInfo",
+        "title": "Field Info"
+      },
+      {
+        "command": "quickbase-explorer.editField",
+        "title": "Edit Field"
+      },
+      {
+        "command": "quickbase-explorer.editFormulaField",
+        "title": "Edit Formula Field"
       }
     ],
     "views": {
@@ -54,7 +66,32 @@
           "name": "Quickbase Tables"
         }
       ]
-    }
+    },
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "quickbase-explorer.editField",
+          "when": "view == quickbaseTables && viewItem == field && viewItem.mode == formula",
+          "group": "inline"
+        },
+        {
+          "command": "quickbase-explorer.editFormulaField",
+          "when": "view == quickbaseTables && viewItem == formulaField",
+          "group": "inline"
+        }
+      ]
+    },
+    "languages": [{
+        "id": "quickbase-formula",
+        "aliases": ["Quickbase Formula", "quickbase-formula"],
+        "extensions": [".qbf"],
+        "configuration": "./syntaxes/quickbase-formula.language-configuration.json"
+    }],
+    "grammars": [{
+        "language": "quickbase-formula",
+        "scopeName": "source.quickbase-formula",
+        "path": "./syntaxes/quickbase-formula.tmLanguage.json"
+    }]
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
